@@ -1,0 +1,100 @@
+# ============================================================
+# AI-radio "Master-FM" — configuration
+# ============================================================
+radio:
+  name: "Master-FM"
+  stream_port: 8090
+  stream_mount: "/radio"          # http://localhost:8090/radio
+  bitrate: 128                    # kbps mp3
+  sample_rate: 44100
+
+  # --- Playlist: on-air hour format ---
+  # Blocks in minutes. DJ builds cycle and repeats.
+  schedule:
+    music_block_min: 15           # music non-stop
+    jingle_every_tracks: 3        # jingle every N tracks
+    news_every_min: 30            # news bulletin
+    ad_every_min: 15              # ad block
+    audiobook_at_hours: [0, 1, 2, 3, 4]  # night - audiobooks
+
+  # --- Operation modes ---
+  modes:
+    # Night batch (20:00-07:00): full generation of all content
+    night_batch:
+      enabled: true
+      start_hour: 20
+      end_hour: 7
+      # What to generate at night:
+      generate_music: true
+      generate_news: true
+      generate_ads: true
+      generate_jingles: true
+      generate_audiobooks: true
+      # Generation params
+      music_per_style: 10         # tracks per style to keep in cache
+      music_duration_sec: 180     # 3 minutes per track
+      news_refresh_hours: 4       # how often to refresh news
+      ads_count: 5                # ad spots
+      jingles_per_theme: 3        # jingles per theme
+      audiobook_chapters: 4       # chapters per book
+
+    # Day mode (07:00-20:00): only breaking news + stream from cache
+    day_mode:
+      enabled: true
+      generate_music: false       # music already in cache
+      generate_news: true         # only breaking news
+      generate_ads: false         # ads already in cache
+      generate_jingles: false     # jingles already in cache
+      generate_audiobooks: false  # audiobooks already in cache
+      news_breaking_only: true    # only breaking
+      news_check_min: 15          # check every 15 min
+
+  # --- Content generation (cache limits) ---
+  generation:
+    music_per_style: 10           # tracks per style in cache
+    news_hold_min: 120            # news "live" 2 hours
+    ad_hold_min: 240              # ads 4 hours
+    jingle_hold_min: 1440         # jingles 24 hours
+    audiobook_chapter_min: 15     # audiobook chapter ~15 min
+
+  # --- Sources ---
+  sources:
+    music_styles:
+      rock: "energetic rock, electric guitars, drums, 120 BPM"
+      jazz: "calm jazz, saxophone, double bass, 90 BPM"
+      electronic: "electronic music, synthesizers, beat 128 BPM"
+      ambient: "ambient, atmospheric pads, slow tempo"
+      chiptune: "chiptune, 8-bit, retro game music"
+      classical: "classical orchestral music, piano"
+    news_categories:
+      world: "world news"
+      tech: "technology and IT news"
+      sport: "sports news"
+      local: "local news"
+    jingle_themes:
+      morning: "morning energizing jingle"
+      traffic: "traffic and roads jingle"
+      holidays: "holiday jingle"
+      funny: "funny jingle"
+    languages: ["ru", "en"]
+
+  # --- DJ (voice) ---
+  dj:
+    voice_profile: "e7013ccf-70c7-4f22-a277-e6b3e4ddc4ef"  # Master-male (Ryan)
+    engine: "qwen_custom_voice"
+    language: "ru"
+    max_text_chars: 900           # Voicebox CPU limit
+    intro_lines:                  # music lead-ins
+      - "Now playing {style}, hold on tight!"
+      - "Master-FM, {style} — just for you."
+      - "Continuing, {style} on the wave."
+
+  # --- Paths ---
+  paths:
+    cache_root: "cache"
+    music_dir: "cache/music"
+    news_dir: "cache/news"
+    ads_dir: "cache/ads"
+    jingles_dir: "cache/jingles"
+    audiobooks_dir: "cache/audiobooks"
+    logs_dir: "logs"

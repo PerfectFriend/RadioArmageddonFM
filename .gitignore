@@ -1,16 +1,90 @@
+# Radio Armageddon FM - Git Ignore
+# Generated for RadioArmageddonFM repo
+
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.pyc
 *.pyo
-*.pyd
 .pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.venv/
+.coverage
+htmlcov/
+
+# Virtual environments
 venv/
 env/
+ENV/
+.venv/
 
 # IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large media/test files (regeneratable)
+*.wav
+*.mp3
+*.ogg
+*.flac
+*.wav.bak
+test_*.wav
+test_*.mp3
+*_test.wav
+*_test.mp3
+gpu_tts_test.wav
+test_musicgen.wav
+test_output.wav
+test_voicebox_*.wav
+yolo11n.pt
+
+# Large output directories (regeneratable)
+music_output/
+radio_output/
+cache/
+newsfeed/
+radio_output/
+music_output/
+logs/
+PlugMem/
+radio/
+music_output/
+
+# Model weights (downloaded separately)
+models/
+*.pt
+*.bin
+*.safetensors
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+evolution.log
+evolution_cycle_*.json
+override.txt
+playlist.txt
+version_badge.txt
+zh-CN
+[A-Z0-9]?
+]?
+
+# Credentials and secrets
+cookies.txt
+*.env
+*.env.local
+*.env.*.local
+*.key
+*.pem
+*.crt
+
+# IDE specific
 .vscode/
 .idea/
 *.swp
@@ -20,36 +94,126 @@ env/
 .DS_Store
 Thumbs.db
 
-# Project specific
-out/
-stream/
-*.mp3
-*.wav
-*.mp4
-*.log
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg
 
-# ACE-Step (large weights - don't commit)
-ACE-Step-1.5/
-*.safetensors
-*.ckpt
+# Jupyter
+.ipynb_checkpoints/
 
-# Voicebox data
-data/
-generations/
-profiles/
-voicebox.db
-
-# Temp files
+# Temporary files
 *.tmp
 *.temp
-radio-*/
+*.bak
+*.swp
+*.swo
 
-# Large model files
-*.bin
+# Documentation generated
+docs/_build/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Hermes specific
+.hermes/
+
+# Project docs (generated/separate)
+EVOLUTION_SCHEMA_v3_PLUGMEM.md
+PLUGMEM_INTEGRATION_SUMMARY.md
+lesson-exponential-dangers.md
+
+# Test files
+test_*.py
+test_*.txt
+
+# Large media/test files (regeneratable)
+*.wav
+*.mp3
+*.ogg
+*.flac
+*.wav.bak
+test_*.wav
+test_*.mp3
+*_test.wav
+*_test.mp3
+gpu_tts_test.wav
+test_musicgen.wav
+test_output.wav
+test_voicebox_*.wav
+yolo11n.pt
+
+# Large output directories (regeneratable)
+music_output/
+radio_output/
+cache/
+newsfeed/
+radio_output/
+music_output/
+logs/
+PlugMem/
+radio/
+music_output/
+
+# Model weights (downloaded separately)
+models/
 *.pt
-*.pth
+*.bin
+*.safetensors
 
-# Buffer/queue files
-buffer/incoming.jsonl
-buffer/selected.jsonl
-buffer/archive/
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+evolution.log
+evolution_cycle_*.json
+override.txt
+playlist.txt
+version_badge.txt
+zh-CN
+[A-Z0-9]?
+]?
+
+# Credentials and secrets
+cookies.txt
+*.env
+*.env.local
+*.env.*.local
+*.key
+*.pem
+*.crt
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Documentation generated
+docs/_build/
+
+# Coverage
+.coverage
+htmlcov/
