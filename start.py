@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-RadioArmageddonFM - Quick start launcher.
-Starts ACE-Step API, Voicebox TTS, and pipeline services (scraper, buffer, scheduler, streamer).
+RadioArmageddonFM - Full Pipeline Start
+Starts ACE-Step API, Voicebox TTS, News Scraper, and DJ Streamer.
 """
 import subprocess
 import sys
@@ -9,6 +9,7 @@ import time
 import os
 import signal
 import threading
+import json
 from pathlib import Path
 
 ACE_STEP_DIR = Path(os.environ.get("ACE_STEP_DIR", r"C:\Users\yusya\ACE-Step-1.5"))
@@ -39,6 +40,14 @@ def check_prereqs():
         ok = False
     else:
         print(f"  ✅ ffmpeg: {shutil.which('ffmpeg')}")
+    
+    # Check config.yaml
+    config_path = REPO_ROOT / "config.yaml"
+    if config_path.exists():
+        print(f"  ✅ config.yaml")
+    else:
+        print(f"  ❌ config.yaml not found")
+        ok = False
     
     return ok
 
@@ -74,7 +83,6 @@ def start_service(name: str, cmd: list, cwd: Path, health_url: str = None,
             time.sleep(2)
             print(f"  ⏳ Waiting {name}... ({i+1}/{max_wait//2})")
     else:
-        # No health check - give it a moment to start
         time.sleep(3)
         if proc.poll() is None:
             print(f"  ✅ {name} started (pid={proc.pid})")
@@ -112,19 +120,29 @@ def start_voicebox():
 
 
 def start_pipeline_service(name: str, module_path: str) -> subprocess.Popen | None:
-    """Start a pipeline daemon (scraper, buffer, scheduler, streamer) if it exists."""
+    """Start a pipeline daemon (scraper, scheduler, streamer) if it exists."""
     run_py = REPO_ROOT / module_path / "run.py"
     if not run_py.exists():
-        print(f"  ⏭️  {name} not found ({run_py}), skipping")
-        return None
+        # Check for alternative entry points
+        alt_entries = [
+            REPO_ROOT / f"{module_path}.py",
+            REPO_ROOT / "scripts" / f"{module_path}.py",
+        ]
+        for alt in alt_entries:
+            if alt.exists():
+                run_py = alt
+                break
+        else:
+            print(f"  ⏭️  {name} not found ({module_path}/run.py), skipping")
+            return None
     
     print(f"\n🚀 Starting {name}...")
     env = os.environ.copy()
     env.pop("PYTHONPATH", None)
     
     proc = subprocess.Popen(
-        [sys.executable, "run.py"],
-        cwd=str(REPO_ROOT / module_path),
+        [sys.executable, str(run_py)],
+        cwd=str(run_py.parent),
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -133,7 +151,6 @@ def start_pipeline_service(name: str, module_path: str) -> subprocess.Popen | No
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
     
-    # Start log reader thread
     def log_reader():
         for line in proc.stdout:
             print(f"  [{name}] {line.rstrip()}")
@@ -149,9 +166,30 @@ def start_pipeline_service(name: str, module_path: str) -> subprocess.Popen | No
         return None
 
 
+def run_scraper_once():
+    """Run news scraper once and exit."""
+    print("\n📡 Running news scraper (one-shot)...")
+    scraper_path = REPO_ROOT / "news_scraper_production.py"
+    if not scraper_path.exists():
+        print("  ⏭️  news_scraper_production.py not found, skipping")
+        return
+    
+    result = subprocess.run(
+        [sys.executable, str(scraper_path)],
+        capture_output=True, text=True, timeout=300
+    )
+    if result.returncode == 0:
+        print(f"  ✅ Scraper completed")
+        print(f"  {result.stdout.strip()[-500:]}")
+    else:
+        print(f"  ⚠️  Scraper warnings/errors:")
+        print(f"  {result.stderr.strip()[-500:]}")
+        print(f"  {result.stdout.strip()[-500:]}")
+
+
 def run_demo():
-    """Run a quick demo generation."""
-    print("\n🎬 Running demo generation...")
+    """Run a quick demo generation using radio_gen.py."""
+    print("\n🎬 Running demo generation (ACE-Step + Voicebox)...")
     result = subprocess.run([
         sys.executable, "radio_gen.py", "jingle",
         "--voice-text", "Вы слушаете Radio Armageddon FM! Хаос на всех волнах.",
@@ -193,11 +231,14 @@ if __name__ == "__main__":
         procs["ace_step"] = start_ace_step()
         procs["voicebox"] = start_voicebox()
         
-        # Pipeline services (optional - will be added when you push from other machine)
+        # Run scraper once at startup
+        run_scraper_once()
+        
+        # Pipeline services (auto-discovered)
         procs["scraper"] = start_pipeline_service("News Scraper", "scraper")
-        procs["buffer"] = start_pipeline_service("Text Buffer", "buffer")
         procs["scheduler"] = start_pipeline_service("Stream Scheduler", "scheduler")
         procs["streamer"] = start_pipeline_service("Streamer", "streamer")
+        procs["dj"] = start_pipeline_service("DJ Streamer", "scripts/dj.py")
         
         run_demo()
         
@@ -205,19 +246,17 @@ if __name__ == "__main__":
         print("  🎉 All available services running! Press Ctrl+C to stop.")
         print("  ACE-Step:   http://127.0.0.1:8001")
         print("  Voicebox:   http://127.0.0.1:7860")
-        if procs.get("scraper"): print("  Scraper:    buffer/incoming.jsonl")
-        if procs.get("buffer"): print("  Buffer:     buffer/selected.jsonl")
+        if procs.get("scraper"): print("  Scraper:    newsfeed_raw/ (hourly)")
         if procs.get("scheduler"): print("  Scheduler:  stream/playlist.json")
         if procs.get("streamer"): print("  Streamer:   Icecast source")
+        if procs.get("dj"): print("  DJ Stream:  http://localhost:8090/radio")
         print("=" * 60)
         
         # Keep running
         while True:
-            # Check for dead processes
             for name, proc in list(procs.items()):
                 if proc and proc.poll() is not None:
-                    print(f"\n  ⚠️  {name} died (exit={proc.returncode}), restarting...")
-                    # Could add restart logic here
+                    print(f"\n  ⚠️  {name} died (exit={proc.returncode})")
             time.sleep(5)
             
     except KeyboardInterrupt:

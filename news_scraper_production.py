@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-PRODUCTION NEWS SCRAPER for Radio Pipeline
-- Runs hourly via cron
-- Parses TOP 100+ RSS feeds
+PRODUCTION NEWS SCRAPER for RadioArmageddonFM Pipeline
+- Runs hourly via cron/scheduler
+- Parses 100+ RSS feeds (from top100_feeds.py)
 - Saves only NEW items from last hour
-- Organizes by topic folders in /newsfeed
+- Organizes by topic folders in newsfeed_raw/
 - Outputs ready-to-TTS text files
 """
 
@@ -19,17 +19,19 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 
 # ─── Config ──────────────────────────────────────────────────────────────
-NEWSFEED_DIR = Path(r"C:\Users\tomas\ai-radio\newsfeed")
+NEWSFEED_DIR = Path(r"C:\Users\yusya\RadioArmageddonFM\newsfeed_raw")
 STATE_FILE = NEWSFEED_DIR / ".scraper_state.json"
-MAX_AGE_HOURS = 1.5  # Slightly more than 1 hour to catch delays
+MAX_AGE_HOURS = 1.5
 MAX_WORKERS = 16
 TIMEOUT = 15
-USER_AGENT = "RadioNewsBot/2.0 (+https://github.com/RadioArmsgeddonFM)"
+USER_AGENT = "RadioNewsBot/2.0 (+https://github.com/PerfectFriend/RadioArmageddonFM)"
 
 # Import the feeds
 sys.path.insert(0, str(Path(__file__).parent))
-from top100_feeds import TOP_100_RSS_FEEDS
-
+try:
+    from top100_feeds import TOP_100_RSS_FEEDS
+except ImportError:
+    TOP_100_RSS_FEEDS = {}
 
 # ─── Helpers ─────────────────────────────────────────────────────────────
 def load_state() -> Dict:
@@ -75,11 +77,9 @@ def parse_date(entry) -> Optional[datetime]:
                 return dt
             except:
                 pass
-    # Try string parsing
     for field in ['published', 'updated']:
         if hasattr(entry, field) and getattr(entry, field):
             try:
-                # feedparser usually returns UTC
                 dt = datetime.fromisoformat(getattr(entry, field).replace('Z', '+00:00'))
                 return dt
             except:
@@ -90,7 +90,7 @@ def parse_date(entry) -> Optional[datetime]:
 def is_recent(pub_date: Optional[datetime], max_hours: float = 1.5) -> bool:
     """Check if item is within the time window."""
     if not pub_date:
-        return True  # Include if no date (better to include)
+        return True
     now = datetime.now(timezone.utc)
     age = now - pub_date
     return age < timedelta(hours=max_hours)
@@ -98,7 +98,6 @@ def is_recent(pub_date: Optional[datetime], max_hours: float = 1.5) -> bool:
 
 def get_category_folder(category: str) -> str:
     """Map category to folder name."""
-    # Normalize category names
     mapping = {
         'tech': 'tech',
         'ai_ml': 'ai',
@@ -127,7 +126,6 @@ class RadioNewsScraper:
         self.state = load_state()
         self.new_hashes = {}
         self.stats = {"total": 0, "new": 0, "duplicates": 0, "errors": 0, "by_category": {}}
-        # Load feeds
         from top100_feeds import TOP_100_RSS_FEEDS
         self.feeds = TOP_100_RSS_FEEDS
 
@@ -135,12 +133,11 @@ class RadioNewsScraper:
         """Fetch and parse single RSS feed."""
         items = []
         try:
-            feed = feedparser.parse(url, request_headers={'User-Agent': 'RadioNewsBot/2.0'})
+            feed = feedparser.parse(url, request_headers={'User-Agent': USER_AGENT})
             if feed.bozo and feed.bozo_exception:
-                # Log but continue
                 pass
 
-            for entry in feed.entries[:20]:  # Limit per feed
+            for entry in feed.entries[:20]:
                 pub_date = parse_date(entry)
                 if not is_recent(pub_date):
                     continue
@@ -224,7 +221,6 @@ class RadioNewsScraper:
             except:
                 pass
 
-        # Create a map of existing items by URL for quick lookup
         existing_by_url = {item['url']: item for item in existing_index}
 
         new_count = 0
@@ -234,7 +230,6 @@ class RadioNewsScraper:
                 self.stats['duplicates'] += 1
                 continue
 
-            # This is a NEW item
             self.stats['new'] += 1
 
             # Create individual text file for TTS
@@ -250,7 +245,6 @@ class RadioNewsScraper:
 
             filepath.write_text(tts_text, encoding='utf-8')
 
-            # Add to index
             existing_by_url[url] = {
                 'title': item['title'],
                 'summary': item['summary'],
@@ -273,15 +267,10 @@ class RadioNewsScraper:
         print("=" * 60)
         print(f"🎙 RADIO NEWS SCRAPER - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
         print(f"📁 Output: {NEWSFEED_DIR}")
-        print(f"📡 Categories: {len(TOP_100_RSS_FEEDS)}")
-        total_feeds = sum(len(v) for v in TOP_100_RSS_FEEDS.values())
-        print(f"📡 Total feeds: {sum(len(v) for v in TOP_100_RSS_FEEDS.values())}")
+        print(f"📡 Categories: {len(self.feeds)}")
         print("=" * 60)
 
         start_time = datetime.now(timezone.utc)
-
-        # Import feeds
-        # from top100_feeds import TOP_100_RSS_FEEDS
 
         all_new_items = []
 
@@ -311,7 +300,6 @@ class RadioNewsScraper:
 
         # Update state
         self.state['last_run'] = datetime.now(timezone.utc).isoformat()
-        # Keep only last 10000 hashes to prevent unbounded growth
         if len(self.state['seen_hashes']) > 10000:
             self.state['seen_hashes'] = dict(list(self.state['seen_hashes'].items())[-5000:])
         save_state(self.state)

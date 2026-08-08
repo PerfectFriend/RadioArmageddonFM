@@ -1,63 +1,62 @@
 # ============================================================
-# AI-radio "Master-FM" — configuration
+# RadioArmageddonFM — Unified Configuration
+# Merged: ACE-Step + Voicebox + MusicGen + DJ Streamer
 # ============================================================
+
 radio:
-  name: "Master-FM"
+  name: "RadioArmageddonFM"
   stream_port: 8090
-  stream_mount: "/radio"          # http://localhost:8090/radio
-  bitrate: 128                    # kbps mp3
+  stream_mount: "/radio"
+  bitrate: 128
   sample_rate: 44100
 
   # --- Playlist: on-air hour format ---
-  # Blocks in minutes. DJ builds cycle and repeats.
   schedule:
-    music_block_min: 15           # music non-stop
-    jingle_every_tracks: 3        # jingle every N tracks
-    news_every_min: 30            # news bulletin
-    ad_every_min: 15              # ad block
-    audiobook_at_hours: [0, 1, 2, 3, 4]  # night - audiobooks
+    music_block_min: 15
+    jingle_every_tracks: 3
+    news_every_min: 30
+    ad_every_min: 15
+    audiobook_at_hours: [0, 1, 2, 3, 4]
 
   # --- Operation modes ---
   modes:
-    # Night batch (20:00-07:00): full generation of all content
+    # Night batch (20:00-07:00): full generation
     night_batch:
       enabled: true
       start_hour: 20
       end_hour: 7
-      # What to generate at night:
       generate_music: true
       generate_news: true
       generate_ads: true
       generate_jingles: true
       generate_audiobooks: true
-      # Generation params
-      music_per_style: 10         # tracks per style to keep in cache
-      music_duration_sec: 180     # 3 minutes per track
-      news_refresh_hours: 4       # how often to refresh news
-      ads_count: 5                # ad spots
-      jingles_per_theme: 3        # jingles per theme
-      audiobook_chapters: 4       # chapters per book
+      music_per_style: 10
+      music_duration_sec: 180
+      news_refresh_hours: 4
+      ads_count: 5
+      jingles_per_theme: 3
+      audiobook_chapters: 4
 
-    # Day mode (07:00-20:00): only breaking news + stream from cache
+    # Day mode (07:00-20:00): stream from cache + breaking news
     day_mode:
       enabled: true
-      generate_music: false       # music already in cache
-      generate_news: true         # only breaking news
-      generate_ads: false         # ads already in cache
-      generate_jingles: false     # jingles already in cache
-      generate_audiobooks: false  # audiobooks already in cache
-      news_breaking_only: true    # only breaking
-      news_check_min: 15          # check every 15 min
+      generate_music: false
+      generate_news: true
+      generate_ads: false
+      generate_jingles: false
+      generate_audiobooks: false
+      news_breaking_only: true
+      news_check_min: 15
 
   # --- Content generation (cache limits) ---
   generation:
-    music_per_style: 10           # tracks per style in cache
-    news_hold_min: 120            # news "live" 2 hours
-    ad_hold_min: 240              # ads 4 hours
-    jingle_hold_min: 1440         # jingles 24 hours
-    audiobook_chapter_min: 15     # audiobook chapter ~15 min
+    music_per_style: 10
+    news_hold_min: 120
+    ad_hold_min: 240
+    jingle_hold_min: 1440
+    audiobook_chapter_min: 15
 
-  # --- Sources ---
+  # --- Music styles (ACE-Step prompts) ---
   sources:
     music_styles:
       rock: "energetic rock, electric guitars, drums, 120 BPM"
@@ -66,35 +65,119 @@ radio:
       ambient: "ambient, atmospheric pads, slow tempo"
       chiptune: "chiptune, 8-bit, retro game music"
       classical: "classical orchestral music, piano"
+      psytrance: "dark psychedelic full-on trance, 148 BPM, driving bass, hypnotic"
+      hardbass: "hardbass, fast 150-160 BPM, heavy kick, Russian style"
+      synthwave: "synthwave, 100 BPM, nostalgic, retro, atmospheric, driving bass"
+      lofi: "chill lo-fi hip hop, 85 BPM, relaxed, jazz samples, steady groove"
+
     news_categories:
       world: "world news"
       tech: "technology and IT news"
-      sport: "sports news"
-      local: "local news"
+      ai_ml: "AI and machine learning news"
+      space: "space and astronomy news"
+      science: "science and research news"
+      politics: "politics and world affairs"
+      war: "war and conflict news"
+      finance: "finance and markets"
+      crypto: "cryptocurrency and blockchain"
+      culture: "culture and entertainment"
+      gaming: "gaming and esports"
+      hardware: "hardware and gadgets"
+      auto: "automotive and EV"
+      health: "health and medicine"
+      energy: "energy and climate"
+      ru_tech: "russian tech news"
+      ru_politics: "russian politics"
+      ru_war: "russian war news"
+
     jingle_themes:
       morning: "morning energizing jingle"
       traffic: "traffic and roads jingle"
       holidays: "holiday jingle"
       funny: "funny jingle"
+      station_id: "radio station identification"
+
     languages: ["ru", "en"]
 
   # --- DJ (voice) ---
   dj:
-    voice_profile: "e7013ccf-70c7-4f22-a277-e6b3e4ddc4ef"  # Master-male (Ryan)
+    voice_profile: "e7013ccf-70c7-4f22-a277-e6b3e4ddc4ef"
     engine: "qwen_custom_voice"
     language: "ru"
-    max_text_chars: 900           # Voicebox CPU limit
-    intro_lines:                  # music lead-ins
+    max_text_chars: 900
+    intro_lines:
       - "Now playing {style}, hold on tight!"
-      - "Master-FM, {style} — just for you."
+      - "Radio Armageddon FM, {style} — just for you."
       - "Continuing, {style} on the wave."
+
+  # --- ACE-Step API ---
+  ace_step:
+    url: "http://127.0.0.1:8001"
+    dir: "C:/Users/yusya/ACE-Step-1.5"
+    inference_steps: 8
+    batch_size: 1
+
+  # --- Voicebox TTS ---
+  voicebox:
+    url: "http://127.0.0.1:7860"
+    data_dir: "C:/Users/yusya/data"
+    default_engine: "kokoro"
+    default_voice: "af_bella"
+    default_language: "ru"
+
+  # --- MusicGen DirectML (fallback/alternative) ---
+  musicgen:
+    model_path: "C:/Users/yusya/RadioArmageddonFM/models/musicgen-small"
+    use_directml: true
+    output_dir: "C:/Users/yusya/RadioArmageddonFM/music_output"
+    sample_rate: 32000
+
+  # --- Audio processing ---
+  audio:
+    crossfade_duration: 2.0
+    duck_level: 0.15
+    duck_fade_ms: 100
 
   # --- Paths ---
   paths:
-    cache_root: "cache"
-    music_dir: "cache/music"
-    news_dir: "cache/news"
-    ads_dir: "cache/ads"
-    jingles_dir: "cache/jingles"
-    audiobooks_dir: "cache/audiobooks"
-    logs_dir: "logs"
+    cache_root: "C:/Users/yusya/RadioArmageddonFM/cache"
+    music_dir: "C:/Users/yusya/RadioArmageddonFM/cache/music"
+    news_dir: "C:/Users/yusya/RadioArmageddonFM/cache/news"
+    ads_dir: "C:/Users/yusya/RadioArmageddonFM/cache/ads"
+    jingles_dir: "C:/Users/yusya/RadioArmageddonFM/cache/jingles"
+    audiobooks_dir: "C:/Users/yusya/RadioArmageddonFM/cache/audiobooks"
+    logs_dir: "C:/Users/yusya/RadioArmageddonFM/logs"
+    newsfeed_raw: "C:/Users/yusya/RadioArmageddonFM/newsfeed_raw"
+    music_output: "C:/Users/yusya/RadioArmageddonFM/music_output"
+    radio_output: "C:/Users/yusya/RadioArmageddonFM/radio_output"
+
+  # --- Scraper ---
+  scraper:
+    output_dir: "C:/Users/yusya/RadioArmageddonFM/newsfeed_raw"
+    state_file: "C:/Users/yusya/RadioArmageddonFM/newsfeed_raw/.scraper_state.json"
+    max_age_hours: 1.5
+    max_workers: 16
+    timeout: 15
+
+  # --- Streaming ---
+  streaming:
+    ring_seconds: 5
+    chunk_size: 4096
+    silence_header: "C:/Users/yusya/RadioArmageddonFM/silence_header.mp3"
+    mastering_chain:
+      - "highpass=f=30"
+      - "agate=threshold=0.001:ratio=10:attack=10:release=100"
+      - "equalizer=f=100:width_type=h:width=200:gain=2"
+      - "equalizer=f=5000:width_type=h:width=5000:gain=1.5"
+      - "stereowiden=1.2"
+      - "loudnorm=I=-14:TP=-1:LRA=11:print_format=summary:measured_I=-20:measured_TP=-6:measured_LRA=2:measured_thresh=-30:offset=0.5:linear=true:dual_mono=false"
+      - "volume=6dB"
+      - "alimiter=limit=0.89:attack=5:release=50:asc=1:asc_level=0.5"
+      - "alimiter=limit=0.94:attack=0.1:release=5:asc=1"
+
+# ============================================================
+# External services (for reference)
+# ============================================================
+# ACE-Step API: http://127.0.0.1:8001
+# Voicebox TTS: http://127.0.0.1:7860
+# Radio Stream: http://localhost:8090/radio
