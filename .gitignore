@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+out/
+*.mp3
+*.wav
+*.mp4
+*.log
+
+# ACE-Step (large weights - don't commit)
+ACE-Step-1.5/
+*.safetensors
+*.ckpt
+
+# Voicebox data
+data/
+generations/
+profiles/
+voicebox.db
+
+# Temp files
+*.tmp
+*.temp
+radio-*/
+
+# Large model files
+*.bin
+*.pt
+*.pth
