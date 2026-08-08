@@ -28,6 +28,18 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# Hermes specific
+.hermes/
+
+# Project docs (generated/separate)
+EVOLUTION_SCHEMA_v3_PLUGMEM.md
+PLUGMEM_INTEGRATION_SUMMARY.md
+lesson-exponential-dangers.md
+
+# Test files
+test_*.py
+test_*.txt
+
 # Large media/test files (regeneratable)
 *.wav
 *.mp3
