@@ -22,6 +22,7 @@ Thumbs.db
 
 # Project specific
 out/
+stream/
 *.mp3
 *.wav
 *.mp4
@@ -47,3 +48,8 @@ radio-*/
 *.bin
 *.pt
 *.pth
+
+# Buffer/queue files
+buffer/incoming.jsonl
+buffer/selected.jsonl
+buffer/archive/
