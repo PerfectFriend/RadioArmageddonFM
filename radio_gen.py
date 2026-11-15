@@ -33,8 +33,19 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-ACE_STEP_URL = os.environ.get("ACE_STEP_URL", "http://127.0.0.1:8001")
-VOICEBOX_URL = os.environ.get("VOICEBOX_URL", "http://127.0.0.1:7860")  # voicebox-server REST API
+ACE_STEP_URL = os.environ.get("ACE_STEP_URL", "http://100.124.152.97:8001")  # totomoto через Tailscale
+VOICEBOX_URL = os.environ.get("VOICEBOX_URL", "http://127.0.0.1:7860")  # voicebox-server REST API (legacy)
+# Наш локальный TTS (w420_tts: Qwen3-TTS на GPU, клон голоса Мастера) — приоритетнее Voicebox
+W420_TTS_URL = os.environ.get("W420_TTS_URL", "http://127.0.0.1:8420")
+W420_TTS_TOKEN = os.environ.get("W420_TTS_TOKEN", "")
+if not W420_TTS_TOKEN:
+    try:
+        for line in Path.home().joinpath(".w420/tts.env").read_text().splitlines():
+            if line.startswith("W420_TTS_TOKEN="):
+                W420_TTS_TOKEN = line.split("=", 1)[1].strip()
+    except Exception:
+        pass
+W420_VOICE_ID = os.environ.get("W420_VOICE_ID", "")  # если пусто — берём первый профиль из /voices
 FFMPEG = shutil.which("ffmpeg") or "ffmpeg"
 
 # ACE-Step server lifecycle (offload-to-CPU segfaults after repeated generations:
@@ -240,13 +251,37 @@ def voicebox_create_preset_profile(name: str, engine: str, voice_id: str,
 def voicebox_speak(text: str, out_path: Path, profile: str | None = None,
                    engine: str = "kokoro", language: str = "ru",
                    voice_id: str = "af_bella") -> Path:
-    """Generate speech via Voicebox and copy the WAV to out_path.
-
-    - Kokoro: tiny 82M model, fast CPU inference, 8 languages (ru included),
-      preset voices (af_bella = female RU-capable). Zero VRAM — perfect
-      parallel with ACE-Step music generation.
-    - LuxTTS: ~1GB VRAM, 48kHz, 150x realtime on CPU (needs model download).
+    """Синтез речи. Приоритет: наш w420_tts (Qwen3-TTS на GPU, клон голоса);
+    запасной вариант — espeak-ng (офлайн). Voicebox (kokoro) остался ниже как legacy.
     """
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    vid = W420_VOICE_ID or voice_id
+    # 1) w420_tts локально
+    try:
+        if not vid or vid == "af_bella":
+            req = urllib.request.Request(
+                f"{W420_TTS_URL}/voices",
+                headers={"X-W420-Token": W420_TTS_TOKEN})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                items = json.loads(r.read())
+                if items:
+                    vid = items[0]["id"]
+        body = json.dumps({"text": text, "lang": language if language in ("ru", "en", "es") else "ru",
+                           "voice_id": vid, "speed": 1.0}).encode()
+        req = urllib.request.Request(
+            f"{W420_TTS_URL}/speak", data=body, method="POST",
+            headers={"Content-Type": "application/json", "X-W420-Token": W420_TTS_TOKEN})
+        with urllib.request.urlopen(req, timeout=300) as r:
+            wav = r.read()
+        if len(wav) > 1000:
+            out_path.write_bytes(wav)
+            return out_path
+    except Exception as e:
+        print(f"[w420_tts] недоступен ({e}), фолбэк на espeak-ng", file=sys.stderr)
+    # 2) espeak-ng фолбэк
+    subprocess.run(["espeak-ng", "-v", language if language in ("ru", "en", "es") else "ru",
+                    "-s", "150", "-w", str(out_path), text], check=True)
+    return out_path
     if not profile:
         profile = voicebox_create_preset_profile("DJ CryptoRadio RU", engine, voice_id, language)
     gen = _vb_call("POST", "/generate", {
