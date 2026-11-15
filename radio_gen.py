@@ -248,6 +248,17 @@ def voicebox_create_preset_profile(name: str, engine: str, voice_id: str,
     return prof["id"]
 
 
+def _list_w420_voices() -> list:
+    """Список профилей голоса из локального w420_tts (для characters.voice_id_for)."""
+    try:
+        req = urllib.request.Request(
+            f"{W420_TTS_URL}/voices", headers={"X-W420-Token": W420_TTS_TOKEN})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return json.loads(r.read())
+    except Exception:
+        return []
+
+
 def voicebox_speak(text: str, out_path: Path, profile: str | None = None,
                    engine: str = "kokoro", language: str = "ru",
                    voice_id: str = "af_bella") -> Path:
@@ -417,13 +428,20 @@ def _bed_prompt(style: str | None, kind: str, seconds: int) -> str:
 
 
 def wf_jingle(args) -> Path:
-    """Station jingle: short music bed (in current block's style) + voice tag."""
+    """Station jingle: short music bed (in current block's style) + voice tag.
+    Голос диктора выбирается фазовой ротацией характеров (characters.py)."""
+    import characters
     prompt = args.prompt or _bed_prompt(args.style, "jingle", JINGLE_SECONDS)
     music = ace_step_generate(prompt, JINGLE_SECONDS, args.tmp / "jingle_music.mp3",
                               seed=args.seed)
     if args.voice_text:
-        voice = voicebox_speak(args.voice_text, args.tmp / "jingle_voice.mp3",
-                               profile=args.profile)
+        ch, phase = characters.pick_character()
+        print(f"[char] phase={phase:.0f}° -> {ch['label']}")
+        vtext = ch["style"](args.voice_text)
+        vid = getattr(args, "voice_id", "") or characters.voice_id_for(
+            ch["voice_key"], _list_w420_voices())
+        voice = voicebox_speak(vtext, args.tmp / "jingle_voice.mp3",
+                               voice_id=vid)
         out = mix_voice_over_music(voice, music, args.out, music_volume=args.bed_volume)
     else:
         out = args.out
