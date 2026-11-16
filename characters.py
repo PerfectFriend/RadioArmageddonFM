@@ -14,15 +14,21 @@ import math
 import os
 from pathlib import Path
 
-# Порядок характеров на круге (углы кратны 360/N)
+# Порядок характеров на круге (углы кратны 360/N).
+# kokoro: фиксированный голос kokoro-ru (dima — низкий мужской, sveta/masha — женские).
+# fx: ffmpeg-эффект поверх сгенерированного голоса — темп/питч/громкость = эмоция.
 CHARACTERS = [
     {"name": "angry",    "label": "ЗЛОЙ",     "voice_key": "char_angry",
+     "kokoro": "dima",  "fx": "asetrate=24000*0.90,aresample=24000,atempo=1.10,volume=2.6",
      "style": lambda t: t.upper() + "!!!"},
     {"name": "cheerful", "label": "ВЕСЁЛЫЙ",  "voice_key": "char_cheerful",
+     "kokoro": "masha", "fx": "asetrate=24000*1.12,aresample=24000,atempo=1.08,volume=2.0",
      "style": lambda t: t + "! 😄"},
     {"name": "calm",     "label": "СПОКОЙНЫЙ","voice_key": "char_calm",
+     "kokoro": "sveta", "fx": "asetrate=24000*0.97,aresample=24000,atempo=0.90,volume=1.6",
      "style": lambda t: t + "..."},
     {"name": "hype",     "label": "ХАЙПОВЫЙ","voice_key": "char_hype",
+     "kokoro": "dima",  "fx": "asetrate=24000*1.05,aresample=24000,atempo=1.22,volume=2.8",
      "style": lambda t: "🔥 " + t + " 🔥"},
 ]
 
@@ -64,7 +70,12 @@ def pick_character():
     return ch, phase
 
 
-def voice_id_for(key: str, voices: list) -> str:
+def voice_id_for(key: str, voices: list, kokoro_pack: str = "") -> str:
+    """Ищем голос по имени (старый w420-клон) или по kokoro-pack (dima/sveta/masha)."""
+    if kokoro_pack:
+        for v in voices:
+            if v.get("pack") == kokoro_pack or v.get("name", "").endswith(kokoro_pack):
+                return v["id"]
     for v in voices:
         if v.get("name") == key:
             return v["id"]

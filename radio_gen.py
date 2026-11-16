@@ -436,12 +436,18 @@ def wf_jingle(args) -> Path:
                               seed=args.seed)
     if args.voice_text:
         ch, phase = characters.pick_character()
-        print(f"[char] phase={phase:.0f}° -> {ch['label']}")
+        print(f"[char] phase={phase:.0f}° -> {ch['label']} (kokoro: {ch.get('kokoro','-')})")
         vtext = ch["style"](args.voice_text)
         vid = getattr(args, "voice_id", "") or characters.voice_id_for(
-            ch["voice_key"], _list_w420_voices())
-        voice = voicebox_speak(vtext, args.tmp / "jingle_voice.mp3",
-                               voice_id=vid)
+            ch["voice_key"], _list_w420_voices(), ch.get("kokoro", ""))
+        voice = voicebox_speak(vtext, args.tmp / "jingle_voice.wav", voice_id=vid)
+        fx = ch.get("fx")
+        if fx:  # эмоция характером: питч/темп/громкость поверх голоса
+            import subprocess
+            fxout = args.tmp / "jingle_voice_fx.wav"
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(voice),
+                            "-af", fx, str(fxout)], check=True)
+            voice = fxout
         out = mix_voice_over_music(voice, music, args.out, music_volume=args.bed_volume)
     else:
         out = args.out
