@@ -33,7 +33,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-ACE_STEP_URL = os.environ.get("ACE_STEP_URL", "http://100.124.152.97:8001")  # totomoto через Tailscale
+ACE_STEP_URL = os.environ.get("ACE_STEP_URL", "http://192.168.1.131:8002")  # totomoto: прямой LAN (Tailscale-порт закрыт файрволом); порт 8002 — run_web_ui_ts.py
 VOICEBOX_URL = os.environ.get("VOICEBOX_URL", "http://127.0.0.1:7860")  # voicebox-server REST API (legacy)
 # Наш локальный TTS (w420_tts: Qwen3-TTS на GPU, клон голоса Мастера) — приоритетнее Voicebox
 W420_TTS_URL = os.environ.get("W420_TTS_URL", "http://127.0.0.1:8420")
